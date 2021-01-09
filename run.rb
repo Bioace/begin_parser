@@ -1,6 +1,7 @@
 require 'headless'
 require "selenium-webdriver"
 require 'yaml'
+require 'json'
 
 class BrowserDriver
 	attr_reader :browser_type, :headless, :driver
@@ -79,6 +80,76 @@ settings = {
 }
 browser_driver = BrowserDriver.new settings
 driver = browser_driver.prepare_browser
-driver.navigate.to 'https://google.com'
+#driver.navigate.to 'https://google.com'
+
+
+def parse_links(driver, url)
+
+	#url = "https://www.wildberries.ru/catalog/knigi/hudozhestvennaya-literatura/"
+	#url = "https://www.wildberries.ru/catalog/knigi/hudozhestvennaya-literatura?page=185"
+	driver.get url
+	#puts driver.find_elements(:css => ".class j-open-full-product-card")
+	urls = []
+
+	begin
+		i=0
+		while true do
+			driver.find_elements(:class, "j-open-full-product-card").each do |el|
+				urls << el.attribute("href")
+			end
+			next_button = driver.find_element(:class, "pagination-next")
+			next_button.click
+		end
+	rescue Selenium::WebDriver::Error::NoSuchElementError => e
+		puts "End"
+	end
+
+	puts urls.count
+	#driver.quit
+
+	#Crash
+	#IO.write("urls.txt", urls.join("\n"))
+	return urls	
+end
+
+def parse_book(driver, book_url)
+
+	
+	driver.get book_url
+	#driver.find_element(:class, "noselect toggle-parameters j-toggle-add-options-detailed").click
+
+	els = []
+	image_link = driver.find_element(:class, "MagicZoomFullSizeImage").attribute("src")
+	book_brand = driver.find_element(:class, "brand").text
+	book_name = driver.find_element(:class, "name").text
+	book_price = driver.find_element(:class, "final-cost").text
+
+	els << image_link
+	els << book_brand
+	els << book_name
+	els << book_price
+	
+	driver.find_elements(:css, "div.pp > span:nth-child(2)").each do |el|
+		els << el.attribute("textContent").strip
+		#el.displayed?
+	end
+	
+	#element = driver.execute_script("return $('div.pp > span:nth-child(2)')[8]")
+	#puts element.text
+	return els
+
+end 
+file = File.new("./output.json", "a:UTF-8")
+
+
+links = parse_links(driver, "https://www.wildberries.ru/catalog/knigi/hudozhestvennaya-literatura?page=180")
+puts links.count
+links.each do |l| 
+	els = parse_book(driver, l)
+	file.print(JSON.generate(els))
+	file.print("\n")
+end
+#parse_book(driver, "https://www.wildberries.ru/catalog/9700025/detail.aspx?targetUrl=GP")
+
 
 
