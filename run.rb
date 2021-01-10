@@ -68,27 +68,9 @@ class BrowserDriver
 	end
 end
 
-config = YAML::load_file(File.expand_path('../config/config.yml', __FILE__))
-settings = {
-	:browser_type => config['browser'],
-	:headless => config['headless'],
-	:use_profile_directory => config['use_profile_directory'],
-	:use_proxy => config['use_proxy'],
-	:path_to_profile_dir => config["path_to_profile_dir"],
-	:proxy_address => config["proxy_address"],
-	:proxy_port => config["proxy_port"]
-}
-browser_driver = BrowserDriver.new settings
-driver = browser_driver.prepare_browser
-#driver.navigate.to 'https://google.com'
-
-
 def parse_links(driver, url)
 
-	#url = "https://www.wildberries.ru/catalog/knigi/hudozhestvennaya-literatura/"
-	#url = "https://www.wildberries.ru/catalog/knigi/hudozhestvennaya-literatura?page=185"
 	driver.get url
-	#puts driver.find_elements(:css => ".class j-open-full-product-card")
 	urls = []
 
 	begin
@@ -105,19 +87,14 @@ def parse_links(driver, url)
 	end
 
 	puts urls.count
-	#driver.quit
-
-	#Crash
-	#IO.write("urls.txt", urls.join("\n"))
+	
 	return urls	
 end
 
 def parse_book(driver, book_url)
 
-	
 	driver.get book_url
-	#driver.find_element(:class, "noselect toggle-parameters j-toggle-add-options-detailed").click
-
+	
 	els = []
 	image_link = driver.find_element(:class, "MagicZoomFullSizeImage").attribute("src")
 	book_brand = driver.find_element(:class, "brand").text
@@ -131,25 +108,35 @@ def parse_book(driver, book_url)
 	
 	driver.find_elements(:css, "div.pp > span:nth-child(2)").each do |el|
 		els << el.attribute("textContent").strip
-		#el.displayed?
 	end
 	
-	#element = driver.execute_script("return $('div.pp > span:nth-child(2)')[8]")
-	#puts element.text
 	return els
 
 end 
+
+config = YAML::load_file(File.expand_path('../config/config.yml', __FILE__))
+settings = {
+	:browser_type => config['browser'],
+	:headless => config['headless'],
+	:use_profile_directory => config['use_profile_directory'],
+	:use_proxy => config['use_proxy'],
+	:path_to_profile_dir => config["path_to_profile_dir"],
+	:proxy_address => config["proxy_address"],
+	:proxy_port => config["proxy_port"]
+}
+
+browser_driver = BrowserDriver.new settings
+driver = browser_driver.prepare_browser
+
 file = File.new("./output.json", "a:UTF-8")
 
+links = parse_links(driver, "https://www.wildberries.ru/catalog/knigi/hudozhestvennaya-literatura")
 
-links = parse_links(driver, "https://www.wildberries.ru/catalog/knigi/hudozhestvennaya-literatura?page=180")
-puts links.count
 links.each do |l| 
 	els = parse_book(driver, l)
 	file.print(JSON.generate(els))
 	file.print("\n")
 end
-#parse_book(driver, "https://www.wildberries.ru/catalog/9700025/detail.aspx?targetUrl=GP")
 
 
 
